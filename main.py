@@ -2,7 +2,7 @@ import requests
 import collections
 import os
 from dotenv import load_dotenv
-import pandas as pd
+from terminaltables import SingleTable
 
 
 def get_count_vacancies(languages: list):
@@ -129,26 +129,24 @@ def get_average_salaries_sj(languages: list):
     return average_salaries
 
 
-def get_pretty_table(statistic):
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.max_colwidth', None)
-
-    df = pd.DataFrame.from_dict(data=statistic, orient='index').reset_index(names='Языки программирования')
-    changed_df = df.rename(columns={
-        'vacancies_found': 'Вакансий найдено',
-        'vacancies_processed': 'Вакансий обработано',
-        'average_salary': 'Средняя зарплата',
-    })
-    return changed_df
+def get_pretty_table(statistic, table_name):
+    table_data = [
+        ('Языки программирования', 'Вакансий найдено', 'Вакансий обработано', 'Средняя зарплата'),
+    ]
+    for language, stat in statistic.items():
+        table_data.append(
+            (language, stat['vacancies_found'], stat['vacancies_processed'], stat['average_salary'])
+        )
+    table_instance = SingleTable(table_data, table_name)
+    return table_instance.table
 
 
 def main():
     load_dotenv()
     programming_languages = ['javascript', 'java', 'python', 'ruby', 'php', 'c++', 'c#', 'go']
 
-    print(get_pretty_table(get_average_salaries_sj(programming_languages)))
-    print(get_pretty_table(get_average_salaries_hh(programming_languages)))
+    print(get_pretty_table(get_average_salaries_sj(programming_languages), 'SuperJob Moscow'))
+    print(get_pretty_table(get_average_salaries_hh(programming_languages), 'HeadHunter Moscow'))
 
 
 if __name__ == '__main__':

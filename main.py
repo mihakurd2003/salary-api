@@ -6,9 +6,9 @@ from terminaltables import SingleTable
 
 
 def predict_salary(salary_from, salary_to) -> float:
-    if salary_from:
+    if salary_from and not salary_to:
         return salary_from * 1.2
-    elif salary_to:
+    if not salary_from and salary_to:
         return salary_to * 0.8
 
     return (salary_from + salary_to) / 2
@@ -16,30 +16,23 @@ def predict_salary(salary_from, salary_to) -> float:
 
 def predict_rub_salary_hh(vacancy):
     block_salary = vacancy['salary']
-    if block_salary['currency'] != 'RUR':
-        return
-
     return predict_salary(block_salary['from'], block_salary['to'])
 
 
 def predict_rub_salary_sj(vacancy):
-    salary = predict_salary(vacancy['payment_from'], vacancy['payment_to'])
-    if not salary:
-        return
-
-    return salary
+    return predict_salary(vacancy['payment_from'], vacancy['payment_to'])
 
 
 def get_average_salaries_hh(languages: list):
     average_salaries = collections.defaultdict(dict)
     for language in languages:
         sum_salary, length_salaries, found_salaries = 0, 0, None
-        page_count = 10
+        page_count, hh_code_city = 10, 1
         for page in range(page_count):
             payload = {
                 'text': f'Программист {language}',
                 'period': 30,
-                'area': 1,
+                'area': hh_code_city,
                 'per_page': 100,
                 'page': page,
             }
@@ -78,12 +71,12 @@ def get_average_salaries_sj(languages: list, api_key):
 
     for language in languages:
         sum_salary, length_salaries, found_salaries = 0, 0, 0
-        page_count = 5
+        page_count, sj_code_programming, sj_code_city = 5, 48, 832
         for page in range(page_count):
             payload = {
-                'catalogues': 48,
+                'catalogues': sj_code_programming,
                 'keyword': f'Программист {language}',
-                't': 832,
+                't': sj_code_city,
                 'currency': 'rub',
                 'page': page,
                 'count': 100,
@@ -99,15 +92,15 @@ def get_average_salaries_sj(languages: list, api_key):
                 print(str(err))
                 continue
 
-            salaries, vacancy_object = [], response.json()['objects']
-            for vacancy in vacancy_object:
+            salaries, vacancies = [], response.json()['objects']
+            for vacancy in vacancies:
                 salary = predict_rub_salary_sj(vacancy)
                 if not salary:
                     continue
                 salaries.append(salary)
             sum_salary += sum(salaries)
             length_salaries += len(salaries)
-            found_salaries += len(vacancy_object)
+            found_salaries += len(vacancies)
 
         average_salary = sum_salary / length_salaries if length_salaries else sum_salary
         average_salaries[language] = {
